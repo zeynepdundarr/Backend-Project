@@ -1,9 +1,3 @@
-
-import pandas as pd
-from time import sleep, perf_counter
-from threading import Thread
-import sqlite3
-import csv
 import numpy as np
 
 class ConfusionMatrixManager:
@@ -17,7 +11,6 @@ class ConfusionMatrixManager:
     def __init__(self, model_no, labels):
         self.model_no = model_no
         self.labels = labels
-        print("Model initialized!")
 
     def table_divide_and_format(self, table):
         # TODO: can it be more optimized that row by row np.array conversion
@@ -27,7 +20,6 @@ class ConfusionMatrixManager:
         # print("TEST 2 -  self.prob_values: ", self.prob_values)
         # print("TEST 2 -  self.given_label_list: ", self.prob_values)
     
-
     def calculate_avg_preds(self):
         # TODO: make it scalable for n models
         np_table = np.array(self.prob_values)
@@ -44,32 +36,18 @@ class ConfusionMatrixManager:
     def calculate_confusion_matrix(self):
         actual = self.given_label_list
         preds = self.pred_label_list
-
         labels = np.unique(actual)
         matrix = np.zeros((len(labels), len(labels)))
         # print("Labels: ",labels)
         # print("actual: ", actual)
         # print("preds: ", preds)
+
         for i in range(len(labels)):
             for j in range(len(labels)):
                 matrix[i,j] = np.sum( (actual==labels[i]) & (preds==labels[j]))
         return matrix
-
     
     def calculate_pred_list(self):
         res = self.avg_probs_a - self.avg_probs_b
         self.pred_label_list = np.array(["A" if x>=0 else "B" for x in res])
         #print("TEST 1 - calculate_pred_list: ", self.pred_label_list)
-
-# Sample ConfusionMatrixManager method
-# sample_table = [('2', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
-#                 ('3', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
-#                 ('4', 'B', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
-#                 ('5', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
-#                 ('6', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0')]
-
-# cmm = ConfusionMatrixManager(sample_table, 3, ["A", "B"])
-# cmm.table_divide_and_format()
-# cmm.calculate_avg_preds()
-# cmm.calculate_pred_list()
-
