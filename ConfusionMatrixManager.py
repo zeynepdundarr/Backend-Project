@@ -23,12 +23,9 @@ class ConfusionMatrixManager:
     def table_divide_and_format(self):
         # TODO: can it be more optimized that row by row np.array conversion
         # info: divides table into actual labels list and probility values
-        x = [row[1] for row in self.table]
         self.given_label_list = np.array(list([row[1] for row in self.table]))
-        print("TEST 3 - x: ", np.array(x))
-        print("TEST 3 - cmm.given: ", cmm.given_label_list)
         self.prob_values = [np.array(list(map(float,row[2:len(row)])), dtype = np.float32) for row in self.table]
-
+        #print("TEST 0 - table test: ", self.table)
 
     def get_avg_preds(self):
         # TODO: make it scalable for n models
@@ -59,15 +56,15 @@ class ConfusionMatrixManager:
         res = self.avg_probs_a - self.avg_probs_b
         self.pred_label_list = np.array(["A" if x>=0 else "B" for x in res])
 
-# Run ConfusionMatrixManager
-sample_table = [('2', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
-                ('3', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
-                ('4', 'B', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
-                ('5', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
-                ('6', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0')]
+# Sample ConfusionMatrixManager method
+# sample_table = [('2', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
+#                 ('3', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
+#                 ('4', 'B', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
+#                 ('5', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
+#                 ('6', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0')]
 
-cmm = ConfusionMatrixManager(sample_table, 3, ["A", "B"])
-cmm.table_divide_and_format()
-cmm.get_avg_preds()
-cmm.get_pred_list()
+# cmm = ConfusionMatrixManager(sample_table, 3, ["A", "B"])
+# cmm.table_divide_and_format()
+# cmm.get_avg_preds()
+# cmm.get_pred_list()
 
