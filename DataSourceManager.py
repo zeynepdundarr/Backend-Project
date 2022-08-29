@@ -116,13 +116,37 @@ class DataSourceManager:
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
         cur.execute(query)
-        self.window_data = cur.fetchall()
+        fetched_res = cur.fetchall()
         #print("FETCH - execute_query: ", self.window_data)
         con.commit()
         con.close()
-        return self.window_data
+        return fetched_res
     
+    def save_confusion_matrix(self, table_name, confusion_matrix):
+        confusion_matrix_str = ""
+        first = True
+        for row in confusion_matrix:
+            for val in row:
+                if first:
+                    confusion_matrix_str+=str(val)
+                    first = False
+                else:
+                    confusion_matrix_str+=" "+str(val)
 
+        self.insert_confusion_matrix(table_name, confusion_matrix_str)
+        self.display_table(table_name)
+
+
+    def fetch_confusion_matrix(self, table_name):
+        query = "Select * from "+table_name
+        conf_mat_data = self.execute_and_get_query(query)
+        index = 0
+        for conf_tup in conf_mat_data:
+            conf_mat_data  = conf_tup[0].split(" ")
+            conf_mat_data = np.array(conf_mat_data).reshape(2,2)
+            index += 1
+
+        
 ## A sample database method
 d1 = DataSourceManager("sample_data_tazi.csv", "Tazi") 
 d1.database_connection() 
@@ -135,15 +159,6 @@ d1.database_connection()
 #d1.create_conf_matrix_table(table_name_2)
 
 conf_table_name = "conf_matrix4"
-def save_confusion_matrix(table_name, confusion_matrix):
-    confusion_matrix_str = ""   
-    for row in confusion_matrix:
-        for val in row:
-            confusion_matrix_str+=" "+str(val)
-
-    d1.insert_confusion_matrix(table_name, confusion_matrix_str)
-    d1.display_table(table_name)
-
 
 ## transfer data to cmm
 cmm = ConfusionMatrixManager(3, ["A","B"])
@@ -166,17 +181,13 @@ while index<db_size-window_range:
     cmm.calculate_pred_list()
     conf_matrix = cmm.calculate_confusion_matrix()
     conf_matrix_array.append(cmm.calculate_confusion_matrix())
-
     # start confusion matrix saving
-    save_confusion_matrix(conf_table_name, conf_matrix)
+    d1.save_confusion_matrix(conf_table_name, conf_matrix)
     # end confusion matrix saving
-
     index += 1
-    print("TEST 16 - index: ", index)
-
+ 
 d1.display_table(conf_table_name)
-
-# print("TEST 1: Confusion matrix array: ", conf_matrix_array)
+d1.fetch_confusion_matrix(conf_table_name)
   
 
 

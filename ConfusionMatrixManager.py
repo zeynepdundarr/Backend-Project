@@ -59,7 +59,7 @@ class ConfusionMatrixManager:
     def calculate_pred_list(self):
         res = self.avg_probs_a - self.avg_probs_b
         self.pred_label_list = np.array(["A" if x>=0 else "B" for x in res])
-        print("TEST 1 - calculate_pred_list: ", self.pred_label_list)
+        #print("TEST 1 - calculate_pred_list: ", self.pred_label_list)
 
 # Sample ConfusionMatrixManager method
 # sample_table = [('2', 'A', '0.1', '0.9', '0.2', '0.8', '1.0', '0'),
