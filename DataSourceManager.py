@@ -8,15 +8,15 @@ from ConfusionMatrixManager import *
 class DataSourceManager:
     chunk_list = []
     con = None
-    table_name = "table1"
+    table_name = "table3"
     con = None
-    cur_data = None
+    window_data = None
 
     def __init__(self, filepath, db_name):
         self.filepath = filepath
         self.db_name = db_name
       
-    def read_from_csv2(self):
+    def read_from_csv_and_insert_data(self):
         chunksize = 20
         with pd.read_csv(self.filepath, chunksize=chunksize, header=None, skiprows = 1) as reader:
             for i, chunk in enumerate(reader):
@@ -29,18 +29,7 @@ class DataSourceManager:
                 chunk = list(iterator)
                 self.insert_data(chunk)
                 # test 
-                break
-                # sleep(1)
-
-    def read_from_csv(self):
-        a_file = open("sample_data_tazi.csv")
-        rows = csv.reader(a_file)
-        next(rows)
-        next(rows)
-
-        for i in rows:
-            print("TEST 8 - Is starting from next?: ", next(i))
-        
+                # sleep(1)        
 
     def database_connection(self):
         global chunk
@@ -75,30 +64,21 @@ class DataSourceManager:
 
     def populate_data_task(self):
         print("Start populating data...")
-        self.read_from_csv()
+        self.read_from_csv_and_insert_data()
 
     def insert_data(self, chunk):
         #print("chunk: ", chunk)
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
-        a_file = open("sample_data_tazi.csv")
-        rows = csv.reader(a_file)
-        next(rows)
-        # print("TEST 2 - Rows: ", rows)
-        # print("TEST 2 - chunk: ", chunk)
         cur.executemany("INSERT INTO "+self.table_name+" VALUES (?, ?, ?, ?, ?, ?, ?, ?)", chunk)
-        #cur.execute("SELECT * FROM "+self.table_name)
         print("FETCH - insert_data: ", cur.fetchall())
-
         con.commit()
         con.close()
     
     def insert_data2(self, chunk):
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
-    
         cur.executemany("INSERT INTO "+self.table_name+" VALUES (?, ?, ?, ?, ?, ?, ?, ?)", chunk)
-        print("TEST 1 - FETCH - insert_data: ", cur.fetchall())
         con.commit()
         con.close()
 
@@ -128,61 +108,51 @@ class DataSourceManager:
         con.commit()
         con.close()
 
-    def execute_query(self, query):
+    def execute_and_get_query(self, query):
         # add query argument
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
         cur.execute(query)
-        res = cur.fetchall()
-        print("FETCH - execute_query: ", res)
+        self.window_data = cur.fetchall()
+        #print("FETCH - execute_query: ", self.window_data)
         con.commit()
         con.close()
-        return res
-
-    def get_data_as_sliding_windows(self, query):
-        start_index = 1
-        end_index = 1000
-        res = self.execute_query(query)
-        print("fetch all select: ", res)
-        return res
+        return self.window_data
+        
 
 ## A sample database method
 d1 = DataSourceManager("sample_data_tazi.csv", "Tazi") 
 d1.database_connection() 
 #d1.create_table("table3")
-d1.read_from_csv2()
+# d1.read_from_csv_and_insert_data()
 #d1.delete_data()
-d1.display_table()
-
-# ## displaying tables in db
-# query0 = "SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';"
-
-# query = "Select * from "+d1.table_name+" where id between "+str(start_index)+" and "+str(end_index)
-# query = "Select * from "+d1.table_name+" where cast(id as INT) between "+str(start_index)+" and "+str(end_index)
-# d1.execute_query(query)
-
-# d1.insert_data()
 # d1.display_table()
 
-
 # transfer data to cmm
-# cmm = ConfusionMatrixManager(d1.cur_data, 3, ["A","B"])
-# window_range = 10
-# db_size = 100
-# index = 0
-# while index<db_size-window_range:
-#     start_index = index
-#     end_index = index + window_range
-#     print("index pairs: ", (start_index, end_index))
-#     # query = "Select * from "+d1.table_name+" where cast(id as INT) between "+str(start_index)+" and "+str(end_index)
-#     # sliding_window_data = d1.get_data_as_sliding_windows(query)
-#     # d1.cur_data = sliding_window_data
-#     # print("Sliding window data: ", sliding_window_data)
-#     # cmm.table_divide_and_format()
+cmm = ConfusionMatrixManager(3, ["A","B"])
+window_range = 10
+db_size = 20
+index = 0
 
-#     # update indexes
-#     index += 1
-    
+conf_matrix_array = []
+while index<db_size-window_range:
+    start_index = index
+    end_index = index + window_range
+    #print("index pairs: ", (start_index, end_index))
+    query = "Select * from "+d1.table_name+" where cast(id as INT) between "+str(start_index)+" and "+str(end_index)
+    d1.window_data = d1.execute_and_get_query(query)
+    cmm.table_divide_and_format(d1.window_data)
+    cmm.calculate_avg_preds()
+    cmm.calculate_pred_list()
+    conf_matrix = cmm.calculate_confusion_matrix()
+    conf_matrix_array.append(cmm.calculate_confusion_matrix())
+    print("TEST 15: ", conf_matrix)
+    # update indexes
+    index += 1
+    print("TEST 16 - index: ", index)
+
+print("TEST 1: Confusion matrix array: ", conf_matrix_array)
+  
 
 
 
@@ -223,7 +193,7 @@ d1.display_table()
 # end_time = perf_counter()
 
 # print(f"It took {end_time-start_time: 0.2f} secs to complete.")
-# d1.read_from_csv()
+# d1.read_from_csv_and_insert_data()
 # d1.database_connection_test1()
 # print("--------------")
 # d1.database_connection_test2()
