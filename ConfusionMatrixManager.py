@@ -16,11 +16,14 @@ class ConfusionMatrixManager:
     def table_divide_and_format(self, table):
         # TODO: can it be more optimized that row by row np.array conversion
         # info: divides table into actual labels list and probility values
-        self.given_label_list = np.array(list([row[1] for row in table]))
-        self.prob_values = [np.array(list(map(float,row[2:len(row)])), dtype = np.float32) for row in table]
-        # print("TEST 2 -  self.prob_values: ", self.prob_values)
-        # print("TEST 2 -  self.given_label_list: ", self.prob_values)
-    
+        if len(table) == 0:
+            print("Table lenght is 0!")
+        else:
+            self.given_label_list = np.array(list([row[1] for row in table]))
+            self.prob_values = [np.array(list(map(float,row[2:len(row)])), dtype = np.float32) for row in table]
+            # print("TEST 2 -  self.prob_values: ", self.prob_values)
+            # print("TEST 2 -  self.given_label_list: ", self.prob_values)
+        
     def calculate_avg_preds(self):
         # TODO: make it scalable for n models
         np_table = np.array(self.prob_values)
@@ -51,4 +54,4 @@ class ConfusionMatrixManager:
     def calculate_pred_list(self):
         res = self.avg_probs_a - self.avg_probs_b
         self.pred_label_list = np.array(["A" if x>=0 else "B" for x in res])
-        #print("TEST 1 - calculate_pred_list: ", self.pred_label_list)
+        # print("TEST 1 - calculate_pred_list: ", self.pred_label_list)
