@@ -8,6 +8,7 @@ import os
 import pandas as pd
 import schedule 
 import functools
+from multiprocessing import Process
 
 
 class DataSourceManager:
@@ -31,7 +32,7 @@ class DataSourceManager:
                 formatted_chunk= list(iterator)
                 self.insert_data(formatted_chunk, table_name)
                 # TODO: Modify sleep
-                sleep(3)        
+                sleep(2)        
 
     def db_connection(self):
         global chunk
@@ -129,13 +130,12 @@ class DataSourceManager:
 # main methods
 def populate_data_task(dsm, data_table_name):
     # Part 1: Continuous Data Source
-
     print("Thread 1 - Populating data task!")
     # dsm = DataSourceManager(filepath, data_table_name, db_name) 
     dsm.db_connection() 
     
     ## uncomment below or deletion
-    dsm.delete_data(data_table_name)
+    # dsm.delete_data(data_table_name)
 
     dsm.pass_from_csv_to_db(data_table_name)
     # dsm.display_table(data_table_name)
@@ -159,20 +159,22 @@ def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
     reading_finished = False
 
     while not reading_finished:
-        
+        print("-------------------------\n")
+        print("Time is: ", perf_counter())
         print("INFO - Thread 2 - Current db size is: ", cur_db_size)
         print("INFO - Thread 2 - Current start_index: ", index)
         print("INFO - Thread 2 - Current end_index: ", index+window_range)
-
+        print("-------------------------")
         # check if it is end of the db
         if index+window_range == db_size_limit - 1:
             reading_finished = True
             print("INFO - Thread 2 - Reading data is finished!")
             print("INFO - Thread 2 - End index is: ", index+window_range)
-            print("INFO - Thread 2 - Current db size is: ", cur_db_size)
+      
 
         # check if data available for reading in db
         if  index + window_range < cur_db_size:
+            print("INFO - Reading from db...")
             start_index = index
             end_index = index + window_range
             query = "Select * from "+data_table_name+" where cast(id as INT) between "+str(start_index)+" and "+str(end_index)
@@ -189,11 +191,18 @@ def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
             index += 1
         else:
         # if not available data then wait for datasource to populate db
+            print("INFO - Waiting db to be populated...")
             start_time = perf_counter()
-            while(end_time - start_time < 5):
+            time_lapsed = 0
+            print("Cur_db_size before: ", cur_db_size)
+            # end index db_size'dan buyuk oldugunda bekle
+            while(time_lapsed < 10000 & (index + window_range >= cur_db_size)):
                 cur_db_size = dsm.get_query_results(query)
                 end_time = perf_counter()
-            print("INFO - Thread 2 - Timeout for datasource for populating.")
+                time_lapsed = end_time - start_time
+        
+            print("Cur_db_size after: ", cur_db_size)
+            print("Waited: ", time_lapsed)
             reading_finished = True
 
 
@@ -226,7 +235,7 @@ def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
     #         index += 1
 
     end_time = perf_counter()
-    print(f"sliding_window_data time: It secs.: ", end_time-start_time)
+   # print(f"sliding_window_data time: It secs.: ", end_time-start_time)
 
     # TODO: Implement it later
     #schedule.every(1).seconds.do(lambda:fetch_sliding_data,dsm, window_range, db_size, index, conf_matrix_array)
@@ -234,27 +243,23 @@ def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
 
 if __name__ == "__main__":
 
-    start_time = perf_counter()
-
     # a method is needed to init db
-
     filepath = "sample_data_tazi.csv"
-    data_table_name = "table6"
-    conf_mat_table_name = "conf_matrix6"
+    data_table_name = "table11"
+    conf_mat_table_name = "conf_matrix11"
     db_name = "Tazi"
 
     dsm = DataSourceManager(conf_mat_table_name, db_name) 
     dsm.db_connection()
     # dsm.create_data_table(data_table_name)
     # dsm.create_conf_matrix_table(conf_mat_table_name)
-    confusion_matrix_calculating_thread = Thread(target=sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name))
-    datasource_populating_thread = Thread(target=populate_data_task(dsm, data_table_name))
+    
+    datasource_populating_thread = Thread(target=populate_data_task, args=(dsm, data_table_name))
+    confusion_matrix_calculating_thread = Process(target=sliding_window_data_to_cmm, args=(dsm, conf_mat_table_name, data_table_name))
 
-    # datasource_populating_thread.start()
-    # confusion_matrix_calculating_thread.start()
+    datasource_populating_thread.start()
+    confusion_matrix_calculating_thread.start()
+   
+    datasource_populating_thread.join()
+    confusion_matrix_calculating_thread.join()
 
-    # datasource_populating_thread.join()
-    # confusion_matrix_calculating_thread.join()
-
-    # end_time = perf_counter()
-    # print(f"It took {end_time-start_time: 0.2f} secs to complete.")
