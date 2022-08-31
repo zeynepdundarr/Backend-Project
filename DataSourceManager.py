@@ -4,6 +4,9 @@ import sqlite3
 from tracemalloc import start
 from ConfusionMatrixManager import *
 import os
+import pandas as pd
+import schedule 
+
 
 class DataSourceManager:
     data_path = "sample_data_tazi.csv"
@@ -11,20 +14,22 @@ class DataSourceManager:
     def __init__(self, db_name, data_table_name = None, conf_mat_table_name = None, filepath=None):
         self.db_name = db_name      
         # TODO: try with filepath = None
+        print("DataSourceManager has been initialized!")
         data_table_name = data_table_name if data_table_name is not None else "default-datasource"
         conf_mat_table_name = conf_mat_table_name if conf_mat_table_name is not None else "default-confusion-matrix"
         self.filepath = filepath if filepath is not None else os.getcwd()+"/"+self.data_path
       
-    def pass_from_csv_to_db(self):
+    def pass_from_csv_to_db(self, table_name):
         chunksize = 20
         with pd.read_csv(self.filepath, chunksize=chunksize, header=None, skiprows = 1) as reader:
             for i, chunk in enumerate(reader):
-                self.chunk_list.append(chunk)  
+                print("Thread 1 - Chunk: ", i)
                 chunk = list(chunk.itertuples(index=False, name=None))       
                 iterator = map(lambda c: list(c), chunk)
                 formatted_chunk= list(iterator)
-                self.insert_data(formatted_chunk)
-                # sleep(1)        
+                self.insert_data(formatted_chunk, table_name)
+                # TODO: Modify sleep
+                sleep(0.1)        
 
     def db_connection(self):
         global chunk
@@ -120,59 +125,83 @@ class DataSourceManager:
             index += 1
 
 # main methods
-def populate_data_task(filepath, db_name, data_table_name):
+def populate_data_task(dsm, data_table_name):
     # Part 1: Continuous Data Source
-    dsm = DataSourceManager(filepath, data_table_name, db_name) 
+
+    print("Thread 1 - Populating data task!")
+    # dsm = DataSourceManager(filepath, data_table_name, db_name) 
     dsm.db_connection() 
-    ## uncomment below when the table is created from scratch
-    # dsm.create_data_table()
-    # dsm.pass_from_csv_to_db(data_source_table_name)
-    dsm.display_table(data_table_name)
-
+    
     ## uncomment below or deletion
-    #dsm.delete_data(conf_table_name)
+    # dsm.delete_data(data_table_name)
 
-def sliding_window_data_to_cmm(db_name, conf_mat_table_name, data_table_name):
+    # dsm.pass_from_csv_to_db(data_table_name)
+    # dsm.display_table(data_table_name)
+
+
+def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
     # Part 2: Calculating Confusion Matrix
     # this method sends data partitions to confusion matrix manager by sliding window approach
-
-    # make filepath optional
-    dsm = DataSourceManager(conf_mat_table_name, db_name) 
-    ## uncomment below when the table is created from scratch
-    #d1.create_conf_matrix_table(conf_table_name)
-
+    print("Thread 2 - sliding_window task")
     cmm = ConfusionMatrixManager(3, ["A","B"])
     window_range = 10
-    db_size = 20
+    db_size = 100
     index = 0
     conf_matrix_array = []
-    while index<db_size-window_range:
-        start_index = index
-        end_index = index + window_range
-        query = "Select * from "+data_table_name+" where cast(id as INT) between "+str(start_index)+" and "+str(end_index)
-        dsm.window_data = dsm.execute_and_get_query(query)
-        cmm.table_divide_and_format(dsm.window_data)
-        cmm.calculate_avg_preds()
-        cmm.calculate_pred_list()
-        conf_matrix = cmm.calculate_confusion_matrix()
-        conf_matrix_array.append(cmm.calculate_confusion_matrix())
-        # start confusion matrix saving
-        dsm.save_confusion_matrix(data_table_name, conf_matrix)
-        # end confusion matrix saving
-        index += 1
 
-start_time = perf_counter()
+    def fetch_sliding_data(dsm, db_size, window_range, index):
+        start_time = perf_counter()
+        # TODO: Add a condition to check if there is an enough instance in db
+        query = "SELECT COUNT(*) FROM "+data_table_name
+        cur_db_size = dsm.get_query_results(query)
+        while index<db_size-window_range and index+window_range<cur_db_size:
+            print("TEST 1 - cur_db_size: ", cur_db_size)
+            print("TEST 2 - end_index: ", index+window_range)
+            start_index = index
+            end_index = index + window_range
+            query = "Select * from "+data_table_name+" where cast(id as INT) between "+str(start_index)+" and "+str(end_index)
+            dsm.window_data = dsm.get_query_results(query)
+            cmm.table_divide_and_format(dsm.window_data)
+            cmm.calculate_avg_preds()
+            cmm.calculate_pred_list()
+            conf_matrix = cmm.calculate_confusion_matrix()
+            print("Thread 2 - confusion matrix: ", conf_matrix)
+            conf_matrix_array.append(cmm.calculate_confusion_matrix())
+            # start confusion matrix saving
+            dsm.save_confusion_matrix(conf_mat_table_name, conf_matrix)
+            # end confusion matrix saving execute_and_get_query
+            index += 1
 
-datasource_populating_thread = Thread(target=populate_data_task("sample_data_tazi.csv","Tazi","table3"))
-confusion_matrix_calculating_thread = Thread(target=sliding_window_data_to_cmm("Tazi", "conf_matrix4"))
+        end_time = perf_counter()
+        print(f"sliding_window_data time: It secs.: ", end_time-start_time)
 
-# datasource_populating_thread.start()
-# confusion_matrix_calculating_thread.start()
-
-# datasource_populating_thread.join()
-# confusion_matrix_calculating_thread.join()
-
-# end_time = perf_counter()
-# print(f"It took {end_time-start_time: 0.2f} secs to complete.")
+    schedule.every(1).seconds.do(fetch_sliding_data(cmm, window_range, db_size, index, conf_matrix_array))
 
 
+if __name__ == "__main__":
+
+    start_time = perf_counter()
+
+    # a method is needed to init db
+
+    filepath = "sample_data_tazi.csv"
+    data_table_name = "table5"
+    conf_mat_table_name = "conf_matrix5"
+    db_name = "Tazi"
+
+    dsm = DataSourceManager(conf_mat_table_name, db_name) 
+    dsm.db_connection()
+    # dsm.create_data_table(data_table_name)
+    # dsm.create_conf_matrix_table(conf_mat_table_name)
+
+    datasource_populating_thread = Thread(target=populate_data_task(dsm, data_table_name))
+    confusion_matrix_calculating_thread = Thread(target=sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name))
+
+    # datasource_populating_thread.start()
+    # confusion_matrix_calculating_thread.start()
+
+    # datasource_populating_thread.join()
+    # confusion_matrix_calculating_thread.join()
+
+    # end_time = perf_counter()
+    # print(f"It took {end_time-start_time: 0.2f} secs to complete.")

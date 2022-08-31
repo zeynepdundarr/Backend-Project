@@ -11,6 +11,7 @@ class ConfusionMatrixManager:
     def __init__(self, model_no, labels):
         self.model_no = model_no
         self.labels = labels
+        print("ConfusionMatrixManager has been initialized!")
 
     def table_divide_and_format(self, table):
         # TODO: can it be more optimized that row by row np.array conversion
@@ -32,7 +33,7 @@ class ConfusionMatrixManager:
         self.avg_probs_b = np.sum(np_table*weights_label_b, axis=1)/3
         # print("TEST 0 -  self.avg_probs_a: ", self.avg_probs_a)
         # print("TEST 0 -  self.avg_probs_b: ", self.avg_probs_b)
-     
+
     def calculate_confusion_matrix(self):
         actual = self.given_label_list
         preds = self.pred_label_list
