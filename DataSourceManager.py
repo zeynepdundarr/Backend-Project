@@ -1,3 +1,4 @@
+from locale import currency
 from time import sleep, perf_counter
 from threading import Thread
 import sqlite3
@@ -6,6 +7,7 @@ from ConfusionMatrixManager import *
 import os
 import pandas as pd
 import schedule 
+import functools
 
 
 class DataSourceManager:
@@ -29,7 +31,7 @@ class DataSourceManager:
                 formatted_chunk= list(iterator)
                 self.insert_data(formatted_chunk, table_name)
                 # TODO: Modify sleep
-                sleep(0.1)        
+                sleep(3)        
 
     def db_connection(self):
         global chunk
@@ -89,7 +91,7 @@ class DataSourceManager:
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
         cur.execute("SELECT * FROM "+table_name)
-        print("fetch all select: ", cur.fetchall())
+        #print("fetch all select: ", cur.fetchall())
         con.commit()
         con.close()
 
@@ -133,30 +135,44 @@ def populate_data_task(dsm, data_table_name):
     dsm.db_connection() 
     
     ## uncomment below or deletion
-    # dsm.delete_data(data_table_name)
+    dsm.delete_data(data_table_name)
 
-    # dsm.pass_from_csv_to_db(data_table_name)
+    dsm.pass_from_csv_to_db(data_table_name)
     # dsm.display_table(data_table_name)
 
 
 def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
     # Part 2: Calculating Confusion Matrix
     # this method sends data partitions to confusion matrix manager by sliding window approach
-    print("Thread 2 - sliding_window task")
+    print("Thread 2 - Sliding Window Task")
     cmm = ConfusionMatrixManager(3, ["A","B"])
     window_range = 10
-    db_size = 100
+    db_size_limit = 100
     index = 0
     conf_matrix_array = []
 
-    def fetch_sliding_data(dsm, db_size, window_range, index):
-        start_time = perf_counter()
-        # TODO: Add a condition to check if there is an enough instance in db
-        query = "SELECT COUNT(*) FROM "+data_table_name
-        cur_db_size = dsm.get_query_results(query)
-        while index<db_size-window_range and index+window_range<cur_db_size:
-            print("TEST 1 - cur_db_size: ", cur_db_size)
-            print("TEST 2 - end_index: ", index+window_range)
+    start_time = perf_counter()
+    # TODO: Add a condition to check if there is an enough instance in db
+    query = "SELECT COUNT(*) FROM "+data_table_name
+    cur_db_size_arr = dsm.get_query_results(query)
+    cur_db_size = cur_db_size_arr[0][0]
+    reading_finished = False
+
+    while not reading_finished:
+        
+        print("INFO - Thread 2 - Current db size is: ", cur_db_size)
+        print("INFO - Thread 2 - Current start_index: ", index)
+        print("INFO - Thread 2 - Current end_index: ", index+window_range)
+
+        # check if it is end of the db
+        if index+window_range == db_size_limit - 1:
+            reading_finished = True
+            print("INFO - Thread 2 - Reading data is finished!")
+            print("INFO - Thread 2 - End index is: ", index+window_range)
+            print("INFO - Thread 2 - Current db size is: ", cur_db_size)
+
+        # check if data available for reading in db
+        if  index + window_range < cur_db_size:
             start_index = index
             end_index = index + window_range
             query = "Select * from "+data_table_name+" where cast(id as INT) between "+str(start_index)+" and "+str(end_index)
@@ -165,18 +181,56 @@ def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
             cmm.calculate_avg_preds()
             cmm.calculate_pred_list()
             conf_matrix = cmm.calculate_confusion_matrix()
-            print("Thread 2 - confusion matrix: ", conf_matrix)
+            #print("Thread 2 - confusion matrix: ", conf_matrix)
             conf_matrix_array.append(cmm.calculate_confusion_matrix())
             # start confusion matrix saving
             dsm.save_confusion_matrix(conf_mat_table_name, conf_matrix)
             # end confusion matrix saving execute_and_get_query
             index += 1
+        else:
+        # if not available data then wait for datasource to populate db
+            start_time = perf_counter()
+            while(end_time - start_time < 5):
+                cur_db_size = dsm.get_query_results(query)
+                end_time = perf_counter()
+            print("INFO - Thread 2 - Timeout for datasource for populating.")
+            reading_finished = True
 
-        end_time = perf_counter()
-        print(f"sliding_window_data time: It secs.: ", end_time-start_time)
 
-    schedule.every(1).seconds.do(fetch_sliding_data(cmm, window_range, db_size, index, conf_matrix_array))
+    # def dummy_func():
+    #     print("DUMMY")
 
+    # def fetch_sliding_data(dsm, db_size, window_range, index, conf_matrix_array):
+    #     print("TEST 3 - in fetch data: ")
+    #     start_time = perf_counter()
+    #     # TODO: Add a condition to check if there is an enough instance in db
+    #     query = "SELECT COUNT(*) FROM "+data_table_name
+    #     cur_db_size = dsm.get_query_results(query)
+    #     print("TEST 0: ", cur_db_size)
+    #     while index<db_size-window_range and index+window_range<cur_db_size:
+    #         print("TEST 1 - cur_db_size: ", cur_db_size)
+    #         print("TEST 2 - end_index: ", index+window_range)
+    #         start_index = index
+    #         end_index = index + window_range
+    #         query = "Select * from "+data_table_name+" where cast(id as INT) between "+str(start_index)+" and "+str(end_index)
+    #         dsm.window_data = dsm.get_query_results(query)
+    #         cmm.table_divide_and_format(dsm.window_data)
+    #         cmm.calculate_avg_preds()
+    #         cmm.calculate_pred_list()
+    #         conf_matrix = cmm.calculate_confusion_matrix()
+    #         print("Thread 2 - confusion matrix: ", conf_matrix)
+    #         conf_matrix_array.append(cmm.calculate_confusion_matrix())
+    #         # start confusion matrix saving
+    #         dsm.save_confusion_matrix(conf_mat_table_name, conf_matrix)
+    #         # end confusion matrix saving execute_and_get_query
+    #         index += 1
+
+    end_time = perf_counter()
+    print(f"sliding_window_data time: It secs.: ", end_time-start_time)
+
+    # TODO: Implement it later
+    #schedule.every(1).seconds.do(lambda:fetch_sliding_data,dsm, window_range, db_size, index, conf_matrix_array)
+    #schedule.every(1).seconds.do(dummy_func)
 
 if __name__ == "__main__":
 
@@ -185,17 +239,16 @@ if __name__ == "__main__":
     # a method is needed to init db
 
     filepath = "sample_data_tazi.csv"
-    data_table_name = "table5"
-    conf_mat_table_name = "conf_matrix5"
+    data_table_name = "table6"
+    conf_mat_table_name = "conf_matrix6"
     db_name = "Tazi"
 
     dsm = DataSourceManager(conf_mat_table_name, db_name) 
     dsm.db_connection()
     # dsm.create_data_table(data_table_name)
     # dsm.create_conf_matrix_table(conf_mat_table_name)
-
-    datasource_populating_thread = Thread(target=populate_data_task(dsm, data_table_name))
     confusion_matrix_calculating_thread = Thread(target=sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name))
+    datasource_populating_thread = Thread(target=populate_data_task(dsm, data_table_name))
 
     # datasource_populating_thread.start()
     # confusion_matrix_calculating_thread.start()
