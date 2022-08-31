@@ -7,8 +7,6 @@ import pandas as pd
 class DataSourceManager:
 
     data_path = "sample_data.csv"
-    ## ful data path is below
-    # data_path = "tazi-se-interview-project-data.csv"
 
     def __init__(self, db_name, data_table_name = None, conf_mat_table_name = None, filepath=None):
         self.db_name = db_name      

@@ -66,8 +66,8 @@ def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
 if __name__ == "__main__":
 
     filepath = "sample_data_tazi.csv"
-    data_table_name = "table12"
-    conf_mat_table_name = "conf_matrix12"
+    data_table_name = "table13"
+    conf_mat_table_name = "conf_matrix13"
     db_name = "Database"
 
     dsm = DataSourceManager(conf_mat_table_name, db_name) 
