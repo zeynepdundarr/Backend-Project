@@ -6,7 +6,7 @@ import pandas as pd
 
 class DataSourceManager:
 
-    data_path = "sample_data_tazi.csv"
+    data_path = "sample_data.csv"
     ## ful data path is below
     # data_path = "tazi-se-interview-project-data.csv"
 

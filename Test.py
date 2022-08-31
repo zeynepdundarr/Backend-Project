@@ -6,16 +6,16 @@ import pandas as pd
 
 class Test(unittest.TestCase):
     
-    filepath = "test-data.csv"
-    data_table_size = 10
-    window_size = 1
-    conf_matrix_size = data_table_size - window_size 
-    test_confusion_matrix = [(1.0, 2.0, 3.0, 4.0)]  
-    data_table_name = "TestTable"
-    conf_mat_table_name = "conf_matrix_test"
-    db_name = "Tazi-Test"
+    # filepath = "test-data.csv"
+    # data_table_size = 10
+    # window_size = 1
+    # conf_matrix_size = data_table_size - window_size 
+    # test_confusion_matrix = [(1.0, 2.0, 3.0, 4.0)]  
+    # data_table_name = "TestTable"
+    # conf_mat_table_name = "conf_matrix_test"
+    # db_name = "Test-DB"
 
-    dsm = DataSourceManager(conf_mat_table_name, db_name) 
+    # dsm = DataSourceManager(conf_mat_table_name, db_name) 
     #cmm = ConfusionMatrixManager()
 
     #dsm.create_data_table(data_table_name)
@@ -110,7 +110,7 @@ class Test(unittest.TestCase):
 if __name__ == '__main__':
 
     # unittest.main()
-    
+
     t = Test()
     filepath = "test-data.csv"
     data_table_size = 10
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     test_confusion_matrix = [(1.0, 2.0, 3.0, 4.0)]  
     data_table_name = "TestTable"
     conf_mat_table_name = "conf_matrix_test"
-    db_name = "Tazi-Test"
+    db_name = "TestDB"
 
     #dsm.create_data_table(data_table_name)
     #dsm.create_data_table(conf_mat_table_name)  

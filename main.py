@@ -68,7 +68,7 @@ if __name__ == "__main__":
     filepath = "sample_data_tazi.csv"
     data_table_name = "table12"
     conf_mat_table_name = "conf_matrix12"
-    db_name = "Tazi"
+    db_name = "Database"
 
     dsm = DataSourceManager(conf_mat_table_name, db_name) 
     dsm.db_connection()
