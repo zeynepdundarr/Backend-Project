@@ -7,8 +7,6 @@ from tracemalloc import start
 from ConfusionMatrixManager import *
 import os
 import pandas as pd
-import schedule 
-import functools
 from multiprocessing import Process
 
 
@@ -94,18 +92,22 @@ class DataSourceManager:
         cur = con.cursor()
         cur.execute("SELECT * FROM "+table_name)
         res = cur.fetchall()
-        print("Display Table: ", res)
         con.commit()
         con.close()
 
-    def get_query_results(self, query):
+    def get_query_results(self, query, table_name):
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
+        cur.execute(query)
         res = cur.fetchall()
         con.commit()
         con.close()
         return res
     
+    def get_table_len(self, dsm, table_name):
+        query = "SELECT * FROM "+table_name
+        return len(dsm.get_query_results(query, table_name))
+
     def save_confusion_matrix(self, table_name, confusion_matrix):
         confusion_matrix_str = ""
         first = True
@@ -140,9 +142,6 @@ def populate_data_task(dsm, data_table_name):
     dsm.pass_from_csv_to_db(data_table_name)
     dsm.display_table(data_table_name)
 
-def get_table_len(dsm, table_name):
-    query = "SELECT * FROM "+table_name
-    return len(dsm.get_query_results(query))
 
 def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
     # Part 2: Calculating Confusion Matrix
@@ -158,11 +157,10 @@ def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
     query = "SELECT COUNT(*) FROM "+data_table_name
     reading_finished = False
     wait_count = 0
-    while not reading_finished:
-        
-        cur_table_size = get_table_len(dsm, data_table_name)
-        print("Table size - :", cur_table_size)
 
+    while not reading_finished:
+        cur_table_size = dsm.get_table_len(dsm, data_table_name)
+        print("Table size - :", cur_table_size)
         if cur_table_size == 0:
             print("INFO - Thread 2 - DB is empty!")
     
@@ -177,7 +175,7 @@ def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
             start_index = index
             end_index = index + window_range
             query = "Select * from "+data_table_name+" where cast(id as INT) between "+str(start_index)+" and "+str(end_index)
-            dsm.window_data = dsm.get_query_results(query)
+            dsm.window_data = dsm.get_query_results(query, data_table_name)
             cmm.table_divide_and_format(dsm.window_data)
             cmm.calculate_avg_preds()
             cmm.calculate_pred_list()
