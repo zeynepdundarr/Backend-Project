@@ -6,9 +6,11 @@ def populate_data_task(dsm, data_table_name):
     # Part 1: Continuous Data Source
     print("Thread 1 - Populating data task!")
     dsm.db_connection() 
+    query = "SELECT * FROM "+data_table_name
     ## uncomment below to add or delete data
     # dsm.pass_from_csv_to_db()
-    # dsm.display_table_contents(data_table_name)
+    dsm.display_table_contents(data_table_name)
+    # dsm.get_query_results(query)
 
 def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
     # Part 2: Calculating Confusion Matrix

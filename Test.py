@@ -14,7 +14,7 @@ class Test(unittest.TestCase):
         self.data_table_name = "TestTable"
         self.window_size = 1
         self.data_table_size = 10
-        self.conf_matrix_size = self.data_table_size - self.window_size 
+        self.conf_matrix_size = 1 
         self.confusion_matrix_str = "(4.0 0.0 6.0 1.0,)"
         self.dsm = DataSourceManager(self.db_name, self.data_table_name, self.conf_mat_table_name, self.filepath)
         self.dsm.db_connection() 
@@ -57,9 +57,9 @@ class Test(unittest.TestCase):
     def test_insert_confusion_matrix(self):
         self.dsm.delete_data(self.conf_mat_table_name)
         self.dsm.insert_confusion_matrix(self.confusion_matrix_str)
-        query = "SELECT * FROM "+self.conf_mat_table_name
-        res = self.dsm.get_table_len(query)
-        self.assertEqual(self.conf_matrix_size, len(res), message)
+        res = self.dsm.get_table_len(self.conf_mat_table_name)
+        print("1001: ", res)
+        self.assertEqual(self.conf_matrix_size, res, message)
 
     def test_create_data_table(self):
         query = "SELECT name FROM sqlite_schema WHERE type='table' ORDER BY name"
@@ -108,14 +108,13 @@ class Test(unittest.TestCase):
         self.assertEqual(self.data_table_size , len(res), message)
 
     def test_save_confusion_matrix(self):
-        query = "SELECT * FROM "+self.data_table_name
         self.dsm.delete_data(self.conf_mat_table_name)
         sample_conf_matrix = np.arange(4).reshape((len(self.labels), len(self.labels)))
         self.dsm.save_confusion_matrix(sample_conf_matrix)
+        query = "SELECT * FROM "+self.conf_mat_table_name
         res = self.dsm.get_query_results(query)
-        print("Query res: ", res)
         message = "Couldn't save confusion matrix in correct format!"
-        self.assertIs(type(res), str, msg=message)
+        self.assertIs(type(res[0][0]), str, msg=message)
 
     def test_fetch_confusion_matrix(self):
         self.dsm.delete_data(self.conf_mat_table_name)
