@@ -15,10 +15,10 @@ class Test(unittest.TestCase):
         self.window_size = 1
         self.data_table_size = 10
         self.conf_matrix_size = self.data_table_size - self.window_size 
-        self.confusion_matrix_str = "[(1.0, 2.0, 3.0, 4.0)]"
+        self.confusion_matrix_str = "(4.0 0.0 6.0 1.0,)"
         self.dsm = DataSourceManager(self.db_name, self.data_table_name, self.conf_mat_table_name, self.filepath)
         self.dsm.db_connection() 
-        cur_table_names = self.dsm.display_tables_in_db(self.data_table_name) 
+        cur_table_names = self.dsm.display_tables_in_db() 
         self.labels = ['A', 'B']
 
         if len(cur_table_names) != 0:
@@ -58,7 +58,7 @@ class Test(unittest.TestCase):
         self.dsm.delete_data(self.conf_mat_table_name)
         self.dsm.insert_confusion_matrix(self.confusion_matrix_str)
         query = "SELECT * FROM "+self.conf_mat_table_name
-        res = self.dsm.get_query_results(query)
+        res = self.dsm.get_table_len(query)
         self.assertEqual(self.conf_matrix_size, len(res), message)
 
     def test_create_data_table(self):
@@ -108,10 +108,12 @@ class Test(unittest.TestCase):
         self.assertEqual(self.data_table_size , len(res), message)
 
     def test_save_confusion_matrix(self):
+        query = "SELECT * FROM "+self.data_table_name
         self.dsm.delete_data(self.conf_mat_table_name)
-        sample_conf_matrix = self.np.arange(4).reshape((len(self.labels), len(self.labels)))
+        sample_conf_matrix = np.arange(4).reshape((len(self.labels), len(self.labels)))
         self.dsm.save_confusion_matrix(sample_conf_matrix)
-        res = self.dsm.get_table_len(self.conf_mat_table_name)
+        res = self.dsm.get_query_results(query)
+        print("Query res: ", res)
         message = "Couldn't save confusion matrix in correct format!"
         self.assertIs(type(res), str, msg=message)
 
