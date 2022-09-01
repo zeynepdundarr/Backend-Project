@@ -6,15 +6,14 @@ import pandas as pd
 
 class DataSourceManager:
 
-    data_path = "sample_data.csv"
-
-    def __init__(self, db_name, data_table_name = None, conf_mat_table_name = None, filepath=None):
+    #filepath = "sample_data.csv"
+    def __init__(self, db_name, data_table_name, conf_mat_table_name, filepath):
         self.db_name = db_name      
         # TODO: try with filepath = None
         print("DataSourceManager has been initialized!")
-        data_table_name = data_table_name if data_table_name is not None else "default-datasource"
-        conf_mat_table_name = conf_mat_table_name if conf_mat_table_name is not None else "default-confusion-matrix"
-        self.filepath = filepath if filepath is not None else os.getcwd()+"/"+self.data_path
+        self.data_table_name = data_table_name 
+        self.conf_mat_table_name = conf_mat_table_name
+        self.filepath = filepath 
       
     def pass_from_csv_to_db(self, table_name):
         chunksize = 20
@@ -25,6 +24,7 @@ class DataSourceManager:
                 iterator = map(lambda c: list(c), chunk)
                 formatted_chunk= list(iterator)
                 self.insert_data(formatted_chunk, table_name)
+                # TODO: uncomment this
                 sleep(1)        
 
     def db_connection(self):
@@ -81,14 +81,22 @@ class DataSourceManager:
         con.commit()
         con.close()
         
-    def display_table(self,table_name):
+    def display_table_contents(self,table_name):
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
         cur.execute("SELECT * FROM "+table_name)
-        #cur.execute("SELECT * FROM table12")
         res = cur.fetchall()
+        #print("INFO - table contents are displayed:", res)
         con.commit()
         con.close()
+
+    def display_tables_in_db(self):
+        query = "SELECT name FROM sqlite_schema WHERE type='table' ORDER BY name"
+        res = self.get_query_results(query)
+        x = [i[0] for i in res]
+        print("INFO - Tables in db: ", x)
+        return x
+        
 
     def get_query_results(self, query):
         con = sqlite3.connect(self.db_name+".db")
@@ -114,8 +122,8 @@ class DataSourceManager:
                     first = False
                 else:
                     confusion_matrix_str+=" "+str(val)
-        self.insert_confusion_matrix(table_name, confusion_matrix_str)
-        self.display_table(table_name)
+        self.insert_confusion_matrix(self.conf_mat_table_name, confusion_matrix_str)
+        self.display_table_contents(self.conf_mat_table_name)
 
     def fetch_confusion_matrix(self, table_name):
         query = "SELECT * FROM "+table_name
