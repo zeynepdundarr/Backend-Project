@@ -7,8 +7,8 @@ def populate_data_task(dsm, data_table_name):
     print("Thread 1 - Populating data task!")
     dsm.db_connection() 
     ## uncomment below to add or delete data
-    dsm.pass_from_csv_to_db(data_table_name)
-    dsm.display_table_contents(data_table_name)
+    # dsm.pass_from_csv_to_db()
+    # dsm.display_table_contents(data_table_name)
 
 def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
     # Part 2: Calculating Confusion Matrix
@@ -49,7 +49,7 @@ def sliding_window_data_to_cmm(dsm, conf_mat_table_name, data_table_name):
             conf_matrix = cmm.calculate_confusion_matrix()
             print("Conf matrix is: ", conf_matrix)
             conf_matrix_array.append(cmm.calculate_confusion_matrix())
-            dsm.save_confusion_matrix(conf_mat_table_name, conf_matrix)
+            dsm.save_confusion_matrix(conf_matrix)
             index += 1
         else:
         # if not available data then wait for datasource to populate db
@@ -70,16 +70,16 @@ if __name__ == "__main__":
     data_table_name = "DM1"
     filepath = "sample_data.csv"
    
-    dsm = DataSourceManager(db_name, conf_mat_table_name, data_table_name, filepath) 
+    dsm = DataSourceManager(db_name, data_table_name, conf_mat_table_name, filepath) 
     dsm.db_connection()
 
     ## when the data_table_name and conf_mat_table_name variables are changed, uncomment the lines below. 
-    # dsm.create_data_table(data_table_name)
-    # dsm.create_conf_matrix_table(conf_mat_table_name)
+    #dsm.create_data_table(data_table_name)
+    #dsm.create_conf_matrix_table(conf_mat_table_name)
     
-    # dsm.display_tables_in_db()
+    dsm.display_tables_in_db()
     # clear the tables 
-    dsm.delete_data(data_table_name)
+    # dsm.delete_data(data_table_name)
     datasource_populating_thread = Thread(target=populate_data_task, args=(dsm, data_table_name))
     confusion_matrix_calculating_thread = Thread(target=sliding_window_data_to_cmm, args=(dsm, conf_mat_table_name, data_table_name))
     

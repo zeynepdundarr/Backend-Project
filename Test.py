@@ -24,8 +24,8 @@ class Test(unittest.TestCase):
         if len(cur_table_names) != 0:
             print("TEST - There are existing tables! - ", cur_table_names)
         else:
-            self.dsm.create_data_table(self.data_table_name)
-            self.dsm.create_conf_matrix_table(self.conf_mat_table_name)
+            self.dsm.create_data_table()
+            self.dsm.create_conf_matrix_table()
             cur_table_names = self.dsm.display_tables_in_db(self.data_table_name) 
             print("TEST - Tables are created! - ", cur_table_names)
         
@@ -33,13 +33,13 @@ class Test(unittest.TestCase):
         cur_table_len = self.dsm.get_table_len(self.data_table_name)
         if cur_table_len == 0:
             print("TEST - current table is empty!")
-            self.dsm.pass_from_csv_to_db(self.data_table_name)
+            self.dsm.pass_from_csv_to_db()
         print("TEST - current table is data populated!", self.dsm.get_table_len(self.data_table_name))
         self.dsm.display_table_contents(self.data_table_name)
 
     def test_pass_from_csv_to_db(self):
         self.dsm.delete_data(self.data_table_name)
-        self.dsm.pass_from_csv_to_db(self.data_table_name)
+        self.dsm.pass_from_csv_to_db()
         query = "SELECT * FROM "+self.data_table_name
         res = self.dsm.get_query_results(query)
         self.assertEqual(self.data_table_size, len(res), message)
@@ -51,12 +51,12 @@ class Test(unittest.TestCase):
                 chunk = list(chunk.itertuples(index=False, name=None))       
                 iterator = map(lambda c: list(c), chunk)
                 formatted_chunk= list(iterator)
-                self.dsm.insert_data(formatted_chunk, self.data_table_name)
+                self.dsm.insert_data(formatted_chunk)
         self.assertGreater(self.dsm.get_table_len(self.data_table_name), 0, "Insertion to DB is not correct!")
 
     def test_insert_confusion_matrix(self):
         self.dsm.delete_data(self.conf_mat_table_name)
-        self.dsm.insert_confusion_matrix(self.conf_mat_table_name, self.confusion_matrix_str)
+        self.dsm.insert_confusion_matrix(self.confusion_matrix_str)
         query = "SELECT * FROM "+self.conf_mat_table_name
         res = self.dsm.get_query_results(query)
         self.assertEqual(self.conf_matrix_size, len(res), message)
@@ -87,7 +87,7 @@ class Test(unittest.TestCase):
         
     def test_display_table(self):
         self.dsm.delete_data(self.data_table_name)
-        self.dsm.pass_from_csv_to_db(self.data_table_name)
+        self.dsm.pass_from_csv_to_db()
         query = "SELECT * FROM "+self.data_table_name
         res = self.dsm.get_query_results(query)
         message = "Displaying incorrect number of rows!"
@@ -101,7 +101,7 @@ class Test(unittest.TestCase):
     
     def test_get_table_len(self):
         self.dsm.delete_data(self.data_table_name)
-        self.dsm.pass_from_csv_to_db(self.data_table_name)
+        self.dsm.pass_from_csv_to_db()
         query = "SELECT * FROM "+self.data_table_name
         res = self.dsm.get_query_results(query)
         message = "Getting incorrect table length!"
@@ -110,7 +110,7 @@ class Test(unittest.TestCase):
     def test_save_confusion_matrix(self):
         self.dsm.delete_data(self.conf_mat_table_name)
         sample_conf_matrix = self.np.arange(4).reshape((len(self.labels), len(self.labels)))
-        self.dsm.save_confusion_matrix(self.data_table_name, sample_conf_matrix)
+        self.dsm.save_confusion_matrix(sample_conf_matrix)
         res = self.dsm.get_table_len(self.conf_mat_table_name)
         message = "Couldn't save confusion matrix in correct format!"
         self.assertIs(type(res), str, msg=message)

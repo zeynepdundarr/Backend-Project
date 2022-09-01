@@ -15,7 +15,7 @@ class DataSourceManager:
         self.conf_mat_table_name = conf_mat_table_name
         self.filepath = filepath 
       
-    def pass_from_csv_to_db(self, table_name):
+    def pass_from_csv_to_db(self):
         chunksize = 20
         with pd.read_csv(self.filepath, chunksize=chunksize, header=None, skiprows = 1) as reader:
             for i, chunk in enumerate(reader):
@@ -23,9 +23,9 @@ class DataSourceManager:
                 chunk = list(chunk.itertuples(index=False, name=None))       
                 iterator = map(lambda c: list(c), chunk)
                 formatted_chunk= list(iterator)
-                self.insert_data(formatted_chunk, table_name)
-                # TODO: uncomment this
-                sleep(1)        
+                self.insert_data(formatted_chunk)
+                # TODO: uncomment below
+                # sleep(1)        
 
     def db_connection(self):
         global chunk
@@ -44,31 +44,31 @@ class DataSourceManager:
                 con.close()
                 print('SQLite Connection closed')
     
-    def insert_data(self, chunk, table_name):
+    def insert_data(self, chunk):
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
-        query = "INSERT INTO "+table_name+" VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        query = "INSERT INTO "+self.data_table_name+" VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         cur.executemany(query, chunk)
         con.commit()
         con.close()
 
-    def insert_confusion_matrix(self, table_name, confusion_matrix_str):
+    def insert_confusion_matrix(self, confusion_matrix_str):
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
-        cur.execute("INSERT INTO "+table_name+" (conf_mat_str) VALUES ('"+confusion_matrix_str+"')")
+        cur.execute("INSERT INTO "+self.conf_mat_table_name+" (conf_mat_str) VALUES ('"+confusion_matrix_str+"')")
         con.commit()
 
-    def create_data_table(self, table_name):
+    def create_data_table(self):
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
-        cur.execute("CREATE TABLE "+table_name+"(id,given_label,model1_A,model1_B,model2_A,model2_B,model3_A,model3_B)")
+        cur.execute("CREATE TABLE "+self.data_table_name+"(id,given_label,model1_A,model1_B,model2_A,model2_B,model3_A,model3_B)")
         con.commit()
         con.close()
 
-    def create_conf_matrix_table(self, table_name):
+    def create_conf_matrix_table(self):
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
-        cur.execute("CREATE TABLE "+table_name+"(conf_mat_str)")
+        cur.execute("CREATE TABLE "+self.conf_mat_table_name+"(conf_mat_str)")
         con.commit()
         con.close()
 
@@ -81,12 +81,12 @@ class DataSourceManager:
         con.commit()
         con.close()
         
-    def display_table_contents(self,table_name):
+    def display_table_contents(self, table_name):
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
         cur.execute("SELECT * FROM "+table_name)
         res = cur.fetchall()
-        #print("INFO - table contents are displayed:", res)
+        print("INFO - table contents are displayed:", res)
         con.commit()
         con.close()
 
@@ -97,7 +97,6 @@ class DataSourceManager:
         print("INFO - Tables in db: ", x)
         return x
         
-
     def get_query_results(self, query):
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
@@ -112,7 +111,7 @@ class DataSourceManager:
         #print("Test 200 - Table len is: ", len(self.get_query_results(query, table_name)))
         return len(self.get_query_results(query))
 
-    def save_confusion_matrix(self, table_name, confusion_matrix):
+    def save_confusion_matrix(self, confusion_matrix):
         confusion_matrix_str = ""
         first = True
         for row in confusion_matrix:
@@ -122,11 +121,11 @@ class DataSourceManager:
                     first = False
                 else:
                     confusion_matrix_str+=" "+str(val)
-        self.insert_confusion_matrix(self.conf_mat_table_name, confusion_matrix_str)
+        self.insert_confusion_matrix(confusion_matrix_str)
         self.display_table_contents(self.conf_mat_table_name)
 
-    def fetch_confusion_matrix(self, table_name):
-        query = "SELECT * FROM "+table_name
+    def fetch_confusion_matrix(self):
+        query = "SELECT * FROM "+self.conf_mat_table_name
         conf_mat_data = self.get_query_results(query)
         index = 0
         for conf_tup in conf_mat_data:
