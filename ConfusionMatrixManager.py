@@ -2,28 +2,19 @@ import numpy as np
 
 class ConfusionMatrixManager:
 
-    given_label_list = None
-    prob_values = None
-    avg_probs_a = None
-    avg_probs_b = None
-    pred_label_list = None
-
     def __init__(self, model_no, labels):
         self.model_no = model_no
         self.labels = labels
-        print("ConfusionMatrixManager has been initialized!")
 
     def table_divide_and_format(self, table):
         # TODO: can it be more optimized that row by row np.array conversion
-        # info: divides table into actual labels list and probility values
+        # This method divides table into actual labels list and probility values
         if len(table) == 0:
-            print("Table lenght is 0!")
+            print("INFO: Table lenght is 0!")
         else:
             self.given_label_list = np.array(list([row[1] for row in table]))
             self.prob_values = [np.array(list(map(float,row[2:len(row)])), dtype = np.float32) for row in table]
-            # print("TEST 2 -  self.prob_values: ", self.prob_values)
-            # print("TEST 2 -  self.given_label_list: ", self.prob_values)
-        
+  
     def calculate_avg_preds(self):
         # TODO: make it scalable for n models
         np_table = np.array(self.prob_values)
@@ -33,8 +24,6 @@ class ConfusionMatrixManager:
 
         self.avg_probs_a = np.sum(np_table*weights_label_a, axis=1)/3
         self.avg_probs_b = np.sum(np_table*weights_label_b, axis=1)/3
-        # print("TEST 0 -  self.avg_probs_a: ", self.avg_probs_a)
-        # print("TEST 0 -  self.avg_probs_b: ", self.avg_probs_b)
 
     def calculate_confusion_matrix(self):
         actual = self.given_label_list
@@ -50,4 +39,4 @@ class ConfusionMatrixManager:
     def calculate_pred_list(self):
         res = self.avg_probs_a - self.avg_probs_b
         self.pred_label_list = np.array(["A" if x>=0 else "B" for x in res])
-        # print("TEST 1 - calculate_pred_list: ", self.pred_label_list)
+   

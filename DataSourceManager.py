@@ -6,16 +6,15 @@ import pandas as pd
 
 class DataSourceManager:
 
-    #filepath = "sample_data.csv"
-    def __init__(self, db_name, data_table_name, conf_mat_table_name, filepath):
+    def __init__(self, db_name, data_table_name, conf_mat_table_name, filepath, db_size_limit):
         self.db_name = db_name      
-        # TODO: try with filepath = None
-        print("DataSourceManager has been initialized!")
         self.data_table_name = data_table_name 
         self.conf_mat_table_name = conf_mat_table_name
         self.filepath = filepath 
-      
+        self.db_size_limit = db_size_limit
+   
     def pass_from_csv_to_db(self):
+        # chunksize = 500 with real values
         chunksize = 20
         with pd.read_csv(self.filepath, chunksize=chunksize, header=None, skiprows = 1) as reader:
             for i, chunk in enumerate(reader):
@@ -24,8 +23,7 @@ class DataSourceManager:
                 iterator = map(lambda c: list(c), chunk)
                 formatted_chunk= list(iterator)
                 self.insert_data(formatted_chunk)
-                # TODO: uncomment below
-                # sleep(1)        
+                sleep(1)        
 
     def db_connection(self):
         global chunk
@@ -56,6 +54,7 @@ class DataSourceManager:
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
         query = "INSERT INTO "+self.conf_mat_table_name+" (conf_mat_str) VALUES ('"+confusion_matrix_str+"')"
+
         cur.execute(query)
         con.commit()
 
@@ -99,18 +98,14 @@ class DataSourceManager:
         return x
         
     def get_query_results(self, query):
-        print("Query is: ", query)
         con = sqlite3.connect(self.db_name+".db")
         cur = con.cursor()
         cur.execute(query)
         res = cur.fetchall()
-        print("INFO - get_query_results: ", res)
-        print("INFO - len: ", len(res))
         con.commit()
         con.close()
         return res
     
-
     def get_table_len(self, table_name):
         query = "SELECT * FROM "+table_name
         return len(self.get_query_results(query))
