@@ -27,8 +27,7 @@ class ConfusionMatrixManager:
     def calculate_avg_preds(self):
         # TODO: make it scalable for n models
         np_table = np.array(self.prob_values)
-        w1, w2, w3 = 1,1,1
-        #0.5, 0.6, 0.7
+        w1, w2, w3 = 0.5, 0.6, 0.7
         weights_label_a = np.array([w1, 0, w2, 0, w3, 0])
         weights_label_b = np.array([0, w1, 0, w2, 0, w3])
 
@@ -42,9 +41,6 @@ class ConfusionMatrixManager:
         preds = self.pred_label_list
         labels = np.unique(actual)
         matrix = np.zeros((len(labels), len(labels)))
-        # print("Labels: ",labels)
-        # print("actual: ", actual)
-        # print("preds: ", preds)
 
         for i in range(len(labels)):
             for j in range(len(labels)):
